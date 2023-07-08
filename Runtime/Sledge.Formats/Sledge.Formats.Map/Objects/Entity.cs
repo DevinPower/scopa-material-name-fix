@@ -6,6 +6,7 @@ namespace Sledge.Formats.Map.Objects
     {
         public string ClassName { get; set; }
         public int SpawnFlags { get; set; }
+        public string Layer { get; set; } = "Default Layer";
         public Dictionary<string, string> Properties { get; set; }
 
         public Entity()

@@ -99,6 +99,7 @@ namespace Sledge.Formats.Map.Formats
         public MapFile Read(Stream stream)
         {
             var map = new MapFile();
+            Entity currentLayer = null;
             using (var reader = new StreamReader(stream))
             {
                 var tokens = Tokeniser.Tokenise(reader);
@@ -115,10 +116,20 @@ namespace Sledge.Formats.Map.Formats
                             map.Worldspawn.SpawnFlags = entity.SpawnFlags;
                             foreach (var p in entity.Properties) map.Worldspawn.Properties[p.Key] = p.Value;
                             map.Worldspawn.Children.AddRange(entity.Children);
+                            currentLayer = entity;
+                        }
+                        else if (entity.Layer == "Default Layer")
+                        {
+                            map.Worldspawn.Children.Add(entity);
+                        }
+                        else if (entity.ClassName == "Layer")
+                        {
+                            map.Layers.Add(entity);
+                            currentLayer = entity;
                         }
                         else
                         {
-                            map.Worldspawn.Children.Add(entity);
+                            currentLayer.Children.Add(entity);
                         }
                         SkipTrivia(it);
                     }
@@ -130,6 +141,7 @@ namespace Sledge.Formats.Map.Formats
 
         #region Read
 
+        static string CurrentLayer = "Default Layer";
         private Entity ReadEntity(IEnumerator<Token> it)
         {
             var ent = new Entity();
@@ -137,6 +149,8 @@ namespace Sledge.Formats.Map.Formats
             Expect(it, TokenType.Symbol, Symbols.OpenBrace);
             SkipNonNewlineWhitespace(it);
             Expect(it, TokenType.Whitespace, x => x.Contains("\n"));
+
+            bool layerFlag = false;
             while (it.Current?.Is(TokenType.Symbol, Symbols.CloseBrace) == false)
             {
                 SkipTrivia(it);
@@ -150,6 +164,11 @@ namespace Sledge.Formats.Map.Formats
 
                     if (key == "classname") ent.ClassName = val;
                     else if (key == "spawnflags") ent.SpawnFlags = int.Parse(val);
+                    else if (key == "_tb_type" && val == "_tb_layer") layerFlag = true;
+                    else if (layerFlag && key == "_tb_name")
+                    {
+                        CurrentLayer = val;
+                    }
                     else ent.Properties[key] = val;
                 }
                 else if (it.Current?.Is(TokenType.Symbol, Symbols.OpenBrace) == true)
@@ -164,6 +183,12 @@ namespace Sledge.Formats.Map.Formats
                 }
             }
 
+            if (layerFlag)
+            {
+                layerFlag = false;
+                ent.ClassName = "Layer";
+            }
+            ent.Layer = CurrentLayer;
             //
 
             Expect(it, TokenType.Symbol, Symbols.CloseBrace);

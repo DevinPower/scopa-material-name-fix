@@ -91,6 +91,15 @@ namespace Scopa {
                 CacheMaterialSearch();
             meshList = ScopaCore.AddGameObjectFromEntityRecursive(rootGameObject, mapFile.Worldspawn, mapName, defaultMaterial, config);
 
+            foreach(Entity layer in mapFile.Layers)
+            {
+                Dictionary<Mesh, Transform> currentLayer = ScopaCore.AddGameObjectFromEntityRecursive(rootGameObject, layer, 
+                    mapName, defaultMaterial, config);
+
+                foreach(Mesh mesh in currentLayer.Keys)
+                    meshList.Add(mesh, currentLayer[mesh]);
+            }
+
             // create a separate physics scene for the object, or else we can't raycast against it?
             // var csp = new CreateSceneParameters(LocalPhysicsMode.Physics3D);
             // var prefabScene = SceneManager.CreateScene("Scopa_PrefabScene", csp);
@@ -374,7 +383,7 @@ namespace Scopa {
                     $"{namePrefix}-{entityObject.name}-{textureKVP.Key}", 
                     entityOrigin,
                     solids,
-                    // faceList[textureKVP.Value],
+                    //faceList[textureKVP.Value],
                     config, 
                     textureKVP.Value, 
                     false
